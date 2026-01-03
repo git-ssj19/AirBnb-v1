@@ -1,0 +1,185 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=windows-1252"> 
+  <title>Coverage Report > CheckOutServiceImpl</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.springboot.projects.airBnbApp.service</a>
+</div>
+
+<h1>Coverage Summary for Class: CheckOutServiceImpl (com.springboot.projects.airBnbApp.service)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">CheckOutServiceImpl</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/2)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/36)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.springboot.projects.airBnbApp.service;
+&nbsp;
+&nbsp;import com.springboot.projects.airBnbApp.entity.Booking;
+&nbsp;import com.springboot.projects.airBnbApp.entity.User;
+&nbsp;import com.springboot.projects.airBnbApp.repository.BookingRepository;
+&nbsp;import com.stripe.exception.StripeException;
+&nbsp;import com.stripe.model.Customer;
+&nbsp;import com.stripe.model.checkout.Session;
+&nbsp;import com.stripe.param.CustomerCreateParams;
+&nbsp;import com.stripe.param.checkout.SessionCreateParams;
+&nbsp;import jakarta.transaction.Transactional;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import lombok.extern.slf4j.Slf4j;
+&nbsp;import org.springframework.security.core.context.SecurityContextHolder;
+&nbsp;import org.springframework.stereotype.Service;
+&nbsp;
+&nbsp;import java.math.BigDecimal;
+&nbsp;
+&nbsp;@Service
+&nbsp;@RequiredArgsConstructor
+<b class="nc">&nbsp;@Slf4j</b>
+&nbsp;public class CheckOutServiceImpl implements CheckoutService{
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;    private final BookingRepository bookingRepository;
+&nbsp;    @Override
+&nbsp;    @Transactional
+&nbsp;    public String getCheckoutSession(Booking booking, String successUrl, String failureUrl) {
+<b class="nc">&nbsp;        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();</b>
+<b class="nc">&nbsp;        log.info(&quot;Creating session for booking with id: {}&quot;,booking.getId());</b>
+&nbsp;        try{
+<b class="nc">&nbsp;            Customer customer = Customer.create(</b>
+<b class="nc">&nbsp;                    CustomerCreateParams.builder()</b>
+<b class="nc">&nbsp;                            .setEmail(user.getEmail())</b>
+<b class="nc">&nbsp;                            .setName(user.getName())</b>
+<b class="nc">&nbsp;                            .build()</b>
+&nbsp;            );
+&nbsp;
+<b class="nc">&nbsp;            SessionCreateParams params = SessionCreateParams.builder()</b>
+<b class="nc">&nbsp;                    .setMode(SessionCreateParams.Mode.PAYMENT)</b>
+<b class="nc">&nbsp;                    .setBillingAddressCollection(SessionCreateParams.BillingAddressCollection.REQUIRED)</b>
+<b class="nc">&nbsp;                    .setCustomer(customer.getId())</b>
+<b class="nc">&nbsp;                    .setSuccessUrl(successUrl)</b>
+<b class="nc">&nbsp;                    .setCancelUrl(failureUrl)</b>
+<b class="nc">&nbsp;                    .addLineItem(</b>
+<b class="nc">&nbsp;                            SessionCreateParams.LineItem.builder()</b>
+<b class="nc">&nbsp;                                    .setQuantity(1L)</b>
+<b class="nc">&nbsp;                                    .setPriceData(</b>
+<b class="nc">&nbsp;                                            SessionCreateParams.LineItem.PriceData.builder()</b>
+<b class="nc">&nbsp;                                                    .setCurrency(&quot;inr&quot;)</b>
+<b class="nc">&nbsp;                                                    .setUnitAmount(booking.getAmount().multiply(BigDecimal.valueOf(100)).longValue())</b>
+<b class="nc">&nbsp;                                                    .setProductData(</b>
+<b class="nc">&nbsp;                                                            SessionCreateParams.LineItem.PriceData.ProductData.builder()</b>
+<b class="nc">&nbsp;                                                                    .setName(booking.getHotel().getName()+&quot; &quot;+booking.getRoom().getType())</b>
+<b class="nc">&nbsp;                                                                    .setDescription(&quot;Booking ID: &quot;+booking.getId())</b>
+<b class="nc">&nbsp;                                                                    .build()</b>
+&nbsp;                                                    )
+<b class="nc">&nbsp;                                                    .build()</b>
+&nbsp;                                    )
+<b class="nc">&nbsp;                                    .build()</b>
+&nbsp;                    )
+<b class="nc">&nbsp;                    .build();</b>
+<b class="nc">&nbsp;            Session session = Session.create(params);</b>
+&nbsp;
+<b class="nc">&nbsp;            booking.setPaymentSessionId(session.getId());</b>
+<b class="nc">&nbsp;            bookingRepository.save(booking);</b>
+&nbsp;
+<b class="nc">&nbsp;            log.info(&quot;Created successful session for booking with id: {}&quot;,booking.getId());</b>
+<b class="nc">&nbsp;            return session.getUrl();</b>
+&nbsp;        }
+<b class="nc">&nbsp;        catch (StripeException e){</b>
+<b class="nc">&nbsp;            throw new RuntimeException(e);</b>
+&nbsp;        }
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-01-03 14:24</div>
+</div>
+</body>
+</html>

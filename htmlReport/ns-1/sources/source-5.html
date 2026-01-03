@@ -1,0 +1,210 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=windows-1252"> 
+  <title>Coverage Report > PricingUpdateService</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.springboot.projects.airBnbApp.service</a>
+</div>
+
+<h1>Coverage Summary for Class: PricingUpdateService (com.springboot.projects.airBnbApp.service)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">PricingUpdateService</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/5)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/44)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.springboot.projects.airBnbApp.service;
+&nbsp;
+&nbsp;import com.springboot.projects.airBnbApp.Strategy.PricingService;
+&nbsp;import com.springboot.projects.airBnbApp.entity.Hotel;
+&nbsp;import com.springboot.projects.airBnbApp.entity.HotelMinPrice;
+&nbsp;import com.springboot.projects.airBnbApp.entity.Inventory;
+&nbsp;import com.springboot.projects.airBnbApp.repository.HotelMinPriceRepository;
+&nbsp;import com.springboot.projects.airBnbApp.repository.HotelRepository;
+&nbsp;import com.springboot.projects.airBnbApp.repository.InventoryRepository;
+&nbsp;import jakarta.persistence.criteria.CriteriaBuilder;
+&nbsp;import jakarta.transaction.Transactional;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import lombok.extern.slf4j.Slf4j;
+&nbsp;import org.springframework.data.domain.Page;
+&nbsp;import org.springframework.data.domain.PageRequest;
+&nbsp;import org.springframework.scheduling.annotation.Scheduled;
+&nbsp;import org.springframework.scheduling.annotation.Schedules;
+&nbsp;import org.springframework.stereotype.Service;
+&nbsp;
+&nbsp;import java.math.BigDecimal;
+&nbsp;import java.math.RoundingMode;
+&nbsp;import java.time.LocalDate;
+&nbsp;import java.util.ArrayList;
+&nbsp;import java.util.HashMap;
+&nbsp;import java.util.List;
+&nbsp;import java.util.Map;
+&nbsp;
+&nbsp;@Service
+&nbsp;@RequiredArgsConstructor
+&nbsp;@Transactional
+<b class="nc">&nbsp;@Slf4j</b>
+&nbsp;public class PricingUpdateService {
+&nbsp;
+&nbsp;    private final HotelRepository  hotelRepository;
+&nbsp;    private final PricingService pricingService;
+&nbsp;    private final InventoryRepository inventoryRepository;
+&nbsp;    private final HotelMinPriceRepository hotelMinPriceRepository;
+&nbsp;
+&nbsp;    @Scheduled(cron = &quot;0 0 * * * *&quot;)
+&nbsp;//    @Scheduled(cron=&quot;*/5 * * * * *&quot;)
+&nbsp;    public void updatePrices(){
+&nbsp;
+<b class="nc">&nbsp;        int page =0 ;</b>
+<b class="nc">&nbsp;        int batchSize = 100;</b>
+&nbsp;        while(true){
+<b class="nc">&nbsp;            Page&lt;Hotel&gt; hotelPage = hotelRepository.findAll(PageRequest.of(page,batchSize));</b>
+<b class="nc">&nbsp;            if(hotelPage.isEmpty()){</b>
+<b class="nc">&nbsp;                break;</b>
+&nbsp;            }
+<b class="nc">&nbsp;            hotelPage.getContent().forEach(hotel -&gt; updateHotelPrices(hotel));</b>
+<b class="nc">&nbsp;            page++;</b>
+<b class="nc">&nbsp;        }</b>
+&nbsp;
+&nbsp;    }
+&nbsp;
+&nbsp;    private void updateHotelPrices(Hotel hotel) {
+<b class="nc">&nbsp;        LocalDate startDate = LocalDate.now();</b>
+<b class="nc">&nbsp;        LocalDate endDate = LocalDate.now().plusYears(1);</b>
+<b class="nc">&nbsp;        List&lt;Inventory&gt; inventoryList = inventoryRepository.findAllByHotelAndDateBetween(hotel,startDate,endDate);</b>
+&nbsp;
+<b class="nc">&nbsp;        for (Inventory inventory:inventoryList) {</b>
+<b class="nc">&nbsp;            log.info(&quot;Original price of Hotel {} is {}&quot;,inventory.getHotel(),inventory.getPrice());</b>
+<b class="nc">&nbsp;            BigDecimal price =  pricingService.calculateDynamicPricing(inventory);</b>
+<b class="nc">&nbsp;            log.info(&quot;Price after surge for Hotel {} is {}&quot;,inventory.getHotel(),inventory.getPrice());</b>
+&nbsp;
+<b class="nc">&nbsp;            inventory.setPrice(price);</b>
+<b class="nc">&nbsp;        }</b>
+<b class="nc">&nbsp;        inventoryRepository.saveAll(inventoryList);</b>
+<b class="nc">&nbsp;        updateHotelMinPrices(hotel,inventoryList,startDate,endDate);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    private void updateHotelMinPrices(Hotel hotel, List&lt;Inventory&gt; inventoryList, LocalDate startDate, LocalDate endDate) {
+<b class="nc">&nbsp;        Map&lt;LocalDate,BigDecimal&gt; dailyMinPrices = new HashMap&lt;&gt;();</b>
+&nbsp;
+&nbsp;        while(true){
+<b class="nc">&nbsp;            BigDecimal minPrice = null;</b>
+<b class="nc">&nbsp;            for(Inventory inventory : inventoryList){</b>
+<b class="nc">&nbsp;                if(inventory.getDate().isEqual(startDate) &amp;&amp; (minPrice == null || inventory.getPrice().compareTo(minPrice) &lt; 0)){</b>
+<b class="nc">&nbsp;                    minPrice = inventory.getPrice();</b>
+&nbsp;                }
+<b class="nc">&nbsp;            }</b>
+<b class="nc">&nbsp;            if(minPrice!=null)</b>
+<b class="nc">&nbsp;            dailyMinPrices.put(startDate,minPrice);</b>
+<b class="nc">&nbsp;            startDate = startDate.plusDays(1);</b>
+<b class="nc">&nbsp;            if(startDate.isAfter(endDate))</b>
+<b class="nc">&nbsp;                break;</b>
+<b class="nc">&nbsp;        }</b>
+&nbsp;
+<b class="nc">&nbsp;        List&lt;HotelMinPrice&gt; hotelMinPrices = new ArrayList&lt;&gt;();</b>
+&nbsp;//        System.out.println(dailyMinPrices);
+<b class="nc">&nbsp;        dailyMinPrices.forEach((date,price) -&gt; {</b>
+<b class="nc">&nbsp;            HotelMinPrice hotelMinPrice = hotelMinPriceRepository.findByHotelAndDate(hotel,date)</b>
+<b class="nc">&nbsp;                    .orElse(new HotelMinPrice(hotel,date));</b>
+<b class="nc">&nbsp;            price = price.setScale(2,RoundingMode.HALF_UP);</b>
+<b class="nc">&nbsp;            BigDecimal max = new BigDecimal(&quot;99999999.99&quot;);</b>
+<b class="nc">&nbsp;            if (price.abs().compareTo(max) &gt; 0) {</b>
+<b class="nc">&nbsp;                throw new IllegalArgumentException(&quot;Price too large for NUMERIC(10,2): &quot; + price);</b>
+&nbsp;            }
+<b class="nc">&nbsp;            log.info(&quot;Price of hotel with id {} after surge calculation is {}&quot;,hotel.getId(),price);</b>
+<b class="nc">&nbsp;            hotelMinPrice.setPrice(price);</b>
+<b class="nc">&nbsp;            hotelMinPrices.add(hotelMinPrice);</b>
+&nbsp;        });
+<b class="nc">&nbsp;        hotelMinPriceRepository.saveAll(hotelMinPrices);</b>
+&nbsp;
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-01-03 14:24</div>
+</div>
+</body>
+</html>

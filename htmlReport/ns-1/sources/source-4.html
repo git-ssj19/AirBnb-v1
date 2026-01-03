@@ -1,0 +1,182 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=windows-1252"> 
+  <title>Coverage Report > InventoryServiceImpl</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.springboot.projects.airBnbApp.service</a>
+</div>
+
+<h1>Coverage Summary for Class: InventoryServiceImpl (com.springboot.projects.airBnbApp.service)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">InventoryServiceImpl</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/4)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/25)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.springboot.projects.airBnbApp.service;
+&nbsp;
+&nbsp;import com.springboot.projects.airBnbApp.dto.HotelDto;
+&nbsp;import com.springboot.projects.airBnbApp.dto.HotelPriceDto;
+&nbsp;import com.springboot.projects.airBnbApp.dto.HotelSearchRequest;
+&nbsp;import com.springboot.projects.airBnbApp.dto.RoomDto;
+&nbsp;import com.springboot.projects.airBnbApp.entity.Hotel;
+&nbsp;import com.springboot.projects.airBnbApp.entity.Inventory;
+&nbsp;import com.springboot.projects.airBnbApp.entity.Room;
+&nbsp;import com.springboot.projects.airBnbApp.exception.ResourceNotFoundException;
+&nbsp;import com.springboot.projects.airBnbApp.repository.HotelMinPriceRepository;
+&nbsp;import com.springboot.projects.airBnbApp.repository.InventoryRepository;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import lombok.extern.slf4j.Slf4j;
+&nbsp;import org.modelmapper.ModelMapper;
+&nbsp;import org.springframework.data.domain.Page;
+&nbsp;import org.springframework.data.domain.PageRequest;
+&nbsp;import org.springframework.data.domain.Pageable;
+&nbsp;import org.springframework.stereotype.Service;
+&nbsp;
+&nbsp;import java.math.BigDecimal;
+&nbsp;import java.time.LocalDate;
+&nbsp;import java.time.chrono.ChronoLocalDate;
+&nbsp;import java.time.temporal.ChronoUnit;
+&nbsp;import java.util.List;
+&nbsp;
+&nbsp;@Service
+<b class="nc">&nbsp;@Slf4j</b>
+&nbsp;@RequiredArgsConstructor
+&nbsp;public class InventoryServiceImpl implements InventoryService{
+&nbsp;
+&nbsp;    private final InventoryRepository inventoryRepository;
+&nbsp;    private final HotelMinPriceRepository hotelMinPriceRepository;
+&nbsp;    @Override
+&nbsp;    public void addInventory(Room room) {
+<b class="nc">&nbsp;        LocalDate today = LocalDate.now();</b>
+<b class="nc">&nbsp;        LocalDate endDate = today.plusYears(1);</b>
+<b class="nc">&nbsp;        for(;!today.equals(endDate);today=today.plusDays(1)){</b>
+<b class="nc">&nbsp;            Inventory inventory = Inventory.builder()</b>
+<b class="nc">&nbsp;                    .hotel(room.getHotel())</b>
+<b class="nc">&nbsp;                    .room(room)</b>
+<b class="nc">&nbsp;                    .date(today)</b>
+<b class="nc">&nbsp;                    .price(room.getBasePrice())</b>
+<b class="nc">&nbsp;                    .totalCount(room.getTotalCount())</b>
+<b class="nc">&nbsp;                    .bookedCount(0)</b>
+<b class="nc">&nbsp;                    .reservedCount(0)</b>
+<b class="nc">&nbsp;                    .closed(false)</b>
+<b class="nc">&nbsp;                    .surgeFactor(BigDecimal.ONE)</b>
+<b class="nc">&nbsp;                    .city(room.getHotel().getCity())</b>
+<b class="nc">&nbsp;                    .build();</b>
+<b class="nc">&nbsp;            inventoryRepository.save(inventory);</b>
+&nbsp;        }
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public void deleteRoomsByRoomId(Long roomId) {
+<b class="nc">&nbsp;        if(inventoryRepository.existsByRoomId(roomId)){</b>
+<b class="nc">&nbsp;            inventoryRepository.deleteByRoomId(roomId);</b>
+&nbsp;        }
+&nbsp;        else{
+<b class="nc">&nbsp;            throw new ResourceNotFoundException(&quot;Room not found in Inventory with Id &quot;+roomId);</b>
+&nbsp;        }
+&nbsp;
+&nbsp;    }
+&nbsp;
+&nbsp;    @Override
+&nbsp;    public Page&lt;HotelPriceDto&gt; browseHotels(HotelSearchRequest hotelSearchRequest) {
+<b class="nc">&nbsp;        Pageable pageable = PageRequest.of(hotelSearchRequest.getPage(),hotelSearchRequest.getPageSize());</b>
+<b class="nc">&nbsp;        log.info(&quot;Page : {} , Size : {}&quot;,pageable.getPageNumber(),pageable.getPageSize());</b>
+<b class="nc">&nbsp;        Long dateCount = ChronoUnit.DAYS.between(hotelSearchRequest.getEndDate(),hotelSearchRequest.getStartDate())+1;</b>
+<b class="nc">&nbsp;        Page&lt;HotelPriceDto&gt; page = hotelMinPriceRepository.browseHotels(hotelSearchRequest.getCity(),hotelSearchRequest.getStartDate(),hotelSearchRequest.getEndDate(),pageable);</b>
+&nbsp;
+<b class="nc">&nbsp;        return page;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2026-01-03 14:24</div>
+</div>
+</body>
+</html>
